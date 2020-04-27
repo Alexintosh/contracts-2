@@ -1,25 +1,20 @@
 pragma solidity >=0.5.0 <0.7.0;
 import "./Enum.sol";
-import "./interfaces/aave-protocol/IFlashLoanReceiver.sol";
+import "./interfaces/aave-protocol/FlashLoanReceiverBase.sol";
 import "./interfaces/aave-protocol/ILendingPool.sol";
 import "./interfaces/aave-protocol/ILendingPoolAddressesProvider.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 
 /// @title FlashloanExecutor - A contract that can execute transactions after receiving a flashloan from aave
 /// This was inspired from Gnosis safe and has been modified to integrate aave flashloan interfaces
-contract FlashloanExecutor is IFlashLoanReceiver,Ownable {
+contract FlashloanExecutor is FlashLoanReceiverBase {
     using SafeMath for uint256;
-    
-    ILendingPoolAddressesProvider private provider;
-    IERC20 private token;
     uint256 private gas;
 
-    constructor(address _provider) public {
-        provider = ILendingPoolAddressesProvider(_provider);
-    }
+    constructor(address _provider) FlashLoanReceiverBase(_provider) public {}
 
     function execute(address to, uint256 value, bytes memory data, Enum.Operation operation, uint256 txGas)
         public
@@ -54,19 +49,19 @@ contract FlashloanExecutor is IFlashLoanReceiver,Ownable {
     }
 
     function flashloan(uint256 amt, address asset,bytes memory data,uint256 _txGas) public onlyOwner {
-        ILendingPool lendingPool = ILendingPool(provider.getLendingPool());
-        token = IERC20(asset);
-        lendingPool.flashLoan(address(this),asset,amt,data);
-        gas = _txGas;
+        // ILendingPool lendingPool = ILendingPool(provider.getLendingPool());
+        // token = IERC20(asset);
+        // lendingPool.flashLoan(address(this),asset,amt,data);
+        // gas = _txGas;
     }
 
-    function executeOperation(address _reserve, uint256 _amount, uint256 _fee, bytes calldata _params) external {
+    function executeOperation(address _reserve, uint256 _amount, uint256 _fee, bytes calldata _params) override external {
         //Check if the flash loan was successful
-        require(_amount <= token.balanceOf(address(this)), "Flashloan was unsuccessful");
+        require(_amount <= getBalanceInternal(address(this), _reserve), "Invalid balance, was the flashLoan successful?");
         //Perform the actual operation
         executeDelegateCall(this.owner(),_params,gas);
         //return the loan back to the pool
-        address payable core = provider.getLendingPoolCore();
-        token.transfer(core,_amount.add(_fee));
+        uint totalDebt = _amount.add(_fee);
+        transferFundsBackToPoolInternal(_reserve, totalDebt);
     }
 }
