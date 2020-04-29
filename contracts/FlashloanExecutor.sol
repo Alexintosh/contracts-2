@@ -57,7 +57,13 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
     }
     
 
+    /**
+    * @dev addTxnLeg - Allows you to add encoded parameters of a transaction step that will be executed during flash loan
+    * @param _to - the contract address which will be called.
+    * @param _input - the encoded input thats passed to the contract
+    */
     function addTxnLeg(address _to, bytes memory _input) public onlyOwner returns (uint) {
+        require(_to != address(0),"Invalid address");
         TxnLeg memory txnLeg;
         txnLeg.to = _to;
         txnLeg.input = _input;
@@ -89,13 +95,6 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
         //Check if the flash loan was successful
         require(_amount <= getBalanceInternal(address(this), _reserve), "Invalid balance, was the flashLoan successful?");
         //return the loan back to the pool
-<<<<<<< HEAD
-        bool success = execute(_reserve,0,_params,Enum.Operation.Call,gasleft());
-        if(success) {
-            emit CallSuccessful(_reserve,_params);
-        } else {
-            emit CallFailed(_reserve,_params);
-=======
         for(uint i=0;i<legs.length;i++) {
             bool success = execute(legs[i].to,0,legs[i].input,Enum.Operation.Call,gasleft());
             if(success) {
@@ -103,7 +102,6 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
             } else {
                 emit CallFailed(legs[i].to,legs[i].input,"Call Failed");
             }
->>>>>>> develop
         }
         uint totalDebt = _amount.add(_fee);
         transferFundsBackToPoolInternal(_reserve, totalDebt);
