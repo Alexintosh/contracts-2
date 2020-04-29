@@ -8,15 +8,15 @@ import "./Enum.sol";
 contract FlashloanExecutor is FlashLoanReceiverBase {
     using SafeMath for uint256;
 
-    struct txnLeg {
-        address _to;
-        bytes _input;
+    struct TxnLeg {
+        address to;
+        bytes input;
     }
 
-    txnLeg[] legs;
+    TxnLeg[] legs;
 
-    event CallSuccessful(address indexed to, bytes input);
-    event CallFailed(address indexed to, bytes input);
+    event CallSuccessful(address indexed to, bytes input, string msg);
+    event CallFailed(address indexed to, bytes input, string msg);
 
     constructor(address _provider) FlashLoanReceiverBase(_provider) public {}
 
@@ -57,8 +57,12 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
     }
     
 
-    function addTxLeg(address to, bytes memory input) public onlyOwner {
-        legs.push(new txnLeg{_to: to, _input: input});
+    function addTxnLeg(address _to, bytes memory _input) public onlyOwner returns (uint) {
+        TxnLeg memory txnLeg;
+        txnLeg.to = _to;
+        txnLeg.input = _input;
+        legs.push(txnLeg);
+        return legs.length;
     }
 
     /**
@@ -85,11 +89,13 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
         //Check if the flash loan was successful
         require(_amount <= getBalanceInternal(address(this), _reserve), "Invalid balance, was the flashLoan successful?");
         //return the loan back to the pool
-        bool success = execute(_reserve,0,_params,Enum.Operation.Call,gasleft());
-        if(success) {
-            emit CallSuccessful(_reserve,_params);
-        } else {
-            emit CallFailed(_reserve,_params);
+        for(uint i=0;i<legs.length;i++) {
+            bool success = execute(legs[i].to,0,legs[i].input,Enum.Operation.Call,gasleft());
+            if(success) {
+                emit CallSuccessful(legs[i].to,legs[i].input,"Call Successful");
+            } else {
+                emit CallFailed(legs[i].to,legs[i].input,"Call Failed");
+            }
         }
         uint totalDebt = _amount.add(_fee);
         transferFundsBackToPoolInternal(_reserve, totalDebt);
