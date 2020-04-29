@@ -48,6 +48,14 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
         }
     }
 
+    /**
+    * @dev flashloan Allows specified _receiver to borrow(**Without Collateral**) from the _reserve pool(lender), and calls executeOperation() on the _receiver contract.
+    * @param amt Total amount to be borrowed for flash loan.
+    * @param asset Address of the asset to be borrowed ex: Dai, Usdc etc.
+    * @param data bytes-encoded extra parameters to use inside the executeOperation() function
+    * @param _txGas ...
+    * @notice onlyOwner This function can only be called by the contract owner.
+    */
     function flashloan(uint256 amt, address asset,bytes memory data,uint256 _txGas) public onlyOwner {
         // ILendingPool lendingPool = ILendingPool(provider.getLendingPool());
         // token = IERC20(asset);
@@ -55,6 +63,15 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
         // gas = _txGas;
     }
 
+    
+    /**
+    * @dev executeOperation This function is called after your contract has received the flash loaned amount
+    * @param _reserve Address of the reserve from which loan is borrowed.
+    * @param _amount Total amount borrowed for flash loan.
+    * @param _fee Total fee for flash loan.
+    * @param _params these calldata bytes are from abi encoded params of flashloan() function.
+    * @notice override As executeOperation is overriden.
+    */
     function executeOperation(address _reserve, uint256 _amount, uint256 _fee, bytes calldata _params) override external {
         //Check if the flash loan was successful
         require(_amount <= getBalanceInternal(address(this), _reserve), "Invalid balance, was the flashLoan successful?");
