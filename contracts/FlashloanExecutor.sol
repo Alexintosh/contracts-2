@@ -46,7 +46,7 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
     }
    
     function testProxy(address asset,bytes memory data,Enum.Operation operation) public onlyOwner returns (bool) {
-        return execute(asset,0,data,operation,gaslimit());
+        return execute(asset,0,data,operation,gasleft());
     }
     
     /**
@@ -74,7 +74,7 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
         //Check if the flash loan was successful
         require(_amount <= getBalanceInternal(address(this), _reserve), "Invalid balance, was the flashLoan successful?");
         //return the loan back to the pool
-        bool success = execute(_reserve,0,_params,Enum.Operation.Call,gaslimit());
+        bool success = execute(_reserve,0,_params,Enum.Operation.Call,gasleft());
         if(success) {
             emit CallSuccessful(_reserve,_params);
         } else {
