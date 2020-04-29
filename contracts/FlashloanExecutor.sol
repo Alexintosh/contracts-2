@@ -8,6 +8,13 @@ import "./Enum.sol";
 contract FlashloanExecutor is FlashLoanReceiverBase {
     using SafeMath for uint256;
 
+    struct txnLeg {
+        address _to;
+        bytes _input;
+    }
+
+    txnLeg[] legs;
+
     event CallSuccessful(address indexed to, bytes input);
     event CallFailed(address indexed to, bytes input);
 
@@ -46,9 +53,14 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
     }
    
     function testProxy(address asset,bytes memory data,Enum.Operation operation) public onlyOwner returns (bool) {
-        return execute(asset,0,data,operation,gaslimit());
+        return execute(asset,0,data,operation,gasleft());
     }
     
+
+    function addTxLeg(address to, bytes memory input) public onlyOwner {
+        legs.push(new txnLeg{_to: to, _input: input});
+    }
+
     /**
     * @dev testFlashLoan Allows specified _receiver to borrow(**Without Collateral**) from the _reserve pool(lender), and calls executeOperation() on the _receiver contract.
     * @param amt Total amount to be borrowed for flash loan.
@@ -61,7 +73,6 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
         lendingPool.flashLoan(address(this),asset,amt,data);
     }
 
-    
     /**
     * @dev executeOperation This function is called after your contract has received the flash loaned amount
     * @param _reserve Address of the reserve from which loan is borrowed.
@@ -74,7 +85,7 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
         //Check if the flash loan was successful
         require(_amount <= getBalanceInternal(address(this), _reserve), "Invalid balance, was the flashLoan successful?");
         //return the loan back to the pool
-        bool success = execute(_reserve,0,_params,Enum.Operation.Call,gaslimit());
+        bool success = execute(_reserve,0,_params,Enum.Operation.Call,gasleft());
         if(success) {
             emit CallSuccessful(_reserve,_params);
         } else {
