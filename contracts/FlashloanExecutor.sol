@@ -11,6 +11,8 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
     struct TxnLeg {
         address to;
         bytes input;
+        uint256 value;
+        Enum.Operation callType;
     }
 
     TxnLeg[] legs;
@@ -57,11 +59,18 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
     }
     
 
-    function addTxnLeg(address _to, bytes memory _input) public onlyOwner returns (uint) {
+    function addTxnLeg(address _to, bytes memory _input, uint256 _value, Enum.Operation _callType) public onlyOwner returns (uint) {
         TxnLeg memory txnLeg;
         txnLeg.to = _to;
         txnLeg.input = _input;
+        txnLeg.value = _value;
+        txnLeg.callType = _callType;
         legs.push(txnLeg);
+        return legs.length;
+    }
+
+    function reset() public onlyOwner returns (uint) {
+        delete legs;
         return legs.length;
     }
 
@@ -90,7 +99,7 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
         require(_amount <= getBalanceInternal(address(this), _reserve), "Invalid balance, was the flashLoan successful?");
         //return the loan back to the pool
         for(uint i=0;i<legs.length;i++) {
-            bool success = execute(legs[i].to,0,legs[i].input,Enum.Operation.Call,gasleft());
+            bool success = execute(legs[i].to,legs[i].value,legs[i].input,legs[i].callType,gasleft());
             if(success) {
                 emit CallSuccessful(legs[i].to,legs[i].input,"Call Successful");
             } else {
