@@ -20,7 +20,16 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
     event CallSuccessful(address indexed to, bytes input, string msg);
     event CallFailed(address indexed to, bytes input, string msg);
 
-    constructor(address _provider) FlashLoanReceiverBase(_provider) public {}
+    constructor(address _provider, TxnLeg[] memory _legs) FlashLoanReceiverBase(_provider) public {
+        for(uint i=0;i<_legs.length;i++) {
+           TxnLeg memory txnLeg;
+           txnLeg.to = _legs[i].to;
+           txnLeg.input = _legs[i].input;
+           txnLeg.value = _legs[i].value;
+           txnLeg.callType = _legs[i].callType;
+           legs.push(txnLeg); 
+        }
+    }
 
     function execute(address to, uint256 value, bytes memory data, Enum.Operation operation, uint256 txGas)
         internal
@@ -58,21 +67,17 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
         return execute(asset,0,data,operation,gasleft());
     }
     
-
-    /**
-    * @dev addTxnLeg - Allows you to add encoded parameters of a transaction step that will be executed during flash loan
-    * @param _to - the contract address which will be called.
-    * @param _input - the encoded input thats passed to the contract
-    */
-    function addTxnLeg(address _to, bytes memory _input, uint256 _value, Enum.Operation _callType) public onlyOwner returns (uint) {
-        require(_to != address(0),"Invalid address");
-        TxnLeg memory txnLeg;
-        txnLeg.to = _to;
-        txnLeg.input = _input;
-        txnLeg.value = _value;
-        txnLeg.callType = _callType;
-        legs.push(txnLeg);
-        return legs.length;
+    function testLeg(uint index) public onlyOwner returns (bool) {
+        TxnLeg memory leg = legs[index];
+        return execute(leg.to,leg.value,leg.input,leg.callType,gasleft());
+    }
+    
+    function testLegs() public onlyOwner returns (bool) {
+        for(uint i=0;i<legs.length;i++) {
+            TxnLeg memory leg = legs[i];
+            execute(leg.to,leg.value,leg.input,leg.callType,gasleft());
+        }
+        return true;
     }
 
     function reset() public onlyOwner returns (uint) {
@@ -80,14 +85,18 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
         return legs.length;
     }
 
+    function getTxnLeg(uint index) public view returns(TxnLeg memory) {
+        return legs[index];
+    }
+
     /**
     * @dev testFlashLoan Allows specified _receiver to borrow(**Without Collateral**) from the _reserve pool(lender), and calls executeOperation() on the _receiver contract.
-    * @param amt Total amount to be borrowed for flash loan.
     * @param asset Address of the asset to be borrowed ex: Dai, Usdc etc.
-    * @param data bytes-encoded extra parameters to use inside the executeOperation() function
+    * @param amt Total amount to be borrowed for flash loan.
     * @notice onlyOwner This function can only be called by the contract owner.
     */
-    function testFlashLoan(uint256 amt,address asset, bytes memory data) public onlyOwner {
+    function testFlashLoan(address asset,uint256 amt) public onlyOwner {
+        bytes memory data = "";
         ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
         lendingPool.flashLoan(address(this),asset,amt,data);
     }
@@ -105,11 +114,12 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
         require(_amount <= getBalanceInternal(address(this), _reserve), "Invalid balance, was the flashLoan successful?");
         //return the loan back to the pool
         for(uint i=0;i<legs.length;i++) {
-            bool success = execute(legs[i].to,legs[i].value,legs[i].input,legs[i].callType,gasleft());
+            TxnLeg memory leg = legs[i];
+            bool success = execute(leg.to,leg.value,leg.input,leg.callType,gasleft());
             if(success) {
-                emit CallSuccessful(legs[i].to,legs[i].input,"Call Successful");
+                emit CallSuccessful(leg.to,leg.input,"Call Successful");
             } else {
-                emit CallFailed(legs[i].to,legs[i].input,"Call Failed");
+                emit CallFailed(leg.to,leg.input,"Call Failed");
             }
         }
         uint totalDebt = _amount.add(_fee);
