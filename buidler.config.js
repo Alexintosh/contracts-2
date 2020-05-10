@@ -22,5 +22,11 @@ module.exports = {
         mnemonic: process.env.MNEMONIC,
       },
     },
+    kovan: {
+      url: 'https://kovan.infura.io/v3/' + process.env.INFURA_API_KEY,
+      accounts: {
+        mnemonic: process.env.MNEMONIC,
+      },
+    },
   },
 };

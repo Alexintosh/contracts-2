@@ -9,9 +9,14 @@ contract ExecutorFactory {
     }
 
     /* Emit appropriate events for scoring */
-   function execute (address _provider, FlashloanExecutor.TxnLeg[] memory _legs) public {
+   function execute (address _provider,
+    FlashloanExecutor.TxnLeg[] memory _legs,
+    address asset,
+    uint256 amount) public {
        FlashloanExecutor sd = new FlashloanExecutor(_provider, _legs);
-       sd.testLegs();
+
+       sd.testFlashLoan(asset, amount);
+
        delete sd;
    }
 }
