@@ -28,5 +28,8 @@ module.exports = {
         mnemonic: process.env.MNEMONIC,
       },
     },
+    localhost: {
+      url: 'http://localhost:8545'
+    }
   },
 };
