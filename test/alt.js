@@ -1,4 +1,4 @@
-const ExecutorFactory = artifacts.require("ExecutorFactory");
+const AltFlashloanExecutor = artifacts.require("AltFlashloanExecutor");
 
 const constants = require("./kovan");
 const ethers = require("ethers");
@@ -12,29 +12,15 @@ const legs = tx.map((item) => {
 
 const amount = ethers.utils.parseEther("0.5");
 
-contract("ExecutorFactory", accounts => {
+contract("AltFlashloanExecutor", accounts => {
   it("Should deploy an executor contract", async function() {
-    const ef = await ExecutorFactory.new();
-
-    await ef.testDeploy(constants.AAVE_PROVIDER, legs);
-  });
-
-  it("Should check the transaction legs", async function() {
-    const ef = await ExecutorFactory.new();
-
-    await ef.testLegs(constants.AAVE_PROVIDER, legs);
-  });
-
-  it("Should check the flash loan", async function() {
-    const ef = await ExecutorFactory.new();
-
-    await ef.testFlashLoan(constants.AAVE_PROVIDER, legs, constants.AAVE_ETHEREUM, amount);
+    const ef = await AltFlashloanExecutor.new(constants.AAVE_PROVIDER);
   });
 
   it("Should run a test transaction", async function() {
-    const ef = await ExecutorFactory.new();
+    const ef = await AltFlashloanExecutor.new(constants.AAVE_PROVIDER);
 
-    await ef.execute(constants.AAVE_PROVIDER, legs, constants.AAVE_ETHEREUM, amount);
+    await ef.run(constants.AAVE_ETHEREUM, amount, legs);
   });
 });
 

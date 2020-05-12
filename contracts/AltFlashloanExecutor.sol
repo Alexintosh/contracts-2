@@ -5,7 +5,7 @@ import "./interfaces/aave-protocol/FlashLoanReceiverBase.sol";
 import "./interfaces/aave-protocol/ILendingPool.sol";
 import "./Enum.sol";
 
-contract FlashloanExecutor is FlashLoanReceiverBase {
+contract AltFlashloanExecutor is FlashLoanReceiverBase {
     using SafeMath for uint256;
 
     struct TxnLeg {
@@ -20,15 +20,7 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
     event CallSuccessful(address indexed to, bytes input, string msg);
     event CallFailed(address indexed to, bytes input, string msg);
 
-    constructor(address _provider, TxnLeg[] memory _legs) FlashLoanReceiverBase(_provider) public {
-        for(uint i=0;i<_legs.length;i++) {
-           TxnLeg memory txnLeg;
-           txnLeg.to = _legs[i].to;
-           txnLeg.input = _legs[i].input;
-           txnLeg.value = _legs[i].value;
-           txnLeg.callType = _legs[i].callType;
-           legs.push(txnLeg); 
-        }
+    constructor(address _provider) FlashLoanReceiverBase(_provider) public {
     }
 
     function execute(address to, uint256 value, bytes memory data, Enum.Operation operation, uint256 txGas)
@@ -62,32 +54,6 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
             success := delegatecall(txGas, to, add(data, 0x20), mload(data), 0, 0)
         }
     }
-   
-    function testProxy(address asset,bytes memory data,Enum.Operation operation) public onlyOwner returns (bool) {
-        return execute(asset,0,data,operation,gasleft());
-    }
-    
-    function testLeg(uint index) public onlyOwner returns (bool) {
-        TxnLeg memory leg = legs[index];
-        return execute(leg.to,leg.value,leg.input,leg.callType,gasleft());
-    }
-    
-    function testLegs() public onlyOwner returns (bool) {
-        for(uint i=0;i<legs.length;i++) {
-            TxnLeg memory leg = legs[i];
-            execute(leg.to,leg.value,leg.input,leg.callType,gasleft());
-        }
-        return true;
-    }
-
-    function reset() public onlyOwner returns (uint) {
-        delete legs;
-        return legs.length;
-    }
-
-    function getTxnLeg(uint index) public view returns(TxnLeg memory) {
-        return legs[index];
-    }
 
     /**
     * @dev testFlashLoan Allows specified _receiver to borrow(**Without Collateral**) from the _reserve pool(lender), and calls executeOperation() on the _receiver contract.
@@ -95,10 +61,10 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
     * @param amt Total amount to be borrowed for flash loan.
     * @notice onlyOwner This function can only be called by the contract owner.
     */
-    function testFlashLoan(address asset,uint256 amt) public onlyOwner {
-        bytes memory data = "";
+    function run(address asset, uint256 amt, TxnLeg[] memory legs) public onlyOwner {
+        bytes memory data = abi.encode(legs);
         ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
-        lendingPool.flashLoan(address(this),asset,amt,data);
+        lendingPool.flashLoan(address(this), asset, amt, data);
     }
 
     /**
@@ -113,9 +79,11 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
         //Check if the flash loan was successful
         require(_amount <= getBalanceInternal(address(this), _reserve), "Invalid balance, was the flashLoan successful?");
 
+        TxnLeg[] memory legs = abi.decode(_params, (TxnLeg[]));
         for(uint i = 0; i < legs.length; i++) {
             TxnLeg memory leg = legs[i];
             bool success = execute(leg.to, leg.value, leg.input, leg.callType,gasleft());
+
             if(success) {
                 emit CallSuccessful(leg.to, leg.input, "Call Successful");
             } else {
