@@ -5,7 +5,7 @@ import "./interfaces/aave-protocol/FlashLoanReceiverBase.sol";
 import "./interfaces/aave-protocol/ILendingPool.sol";
 import "./Enum.sol";
 
-contract AltFlashloanExecutor is FlashLoanReceiverBase {
+contract FlashloanExecutor is FlashLoanReceiverBase {
     using SafeMath for uint256;
 
     struct TxnLeg {
@@ -14,8 +14,6 @@ contract AltFlashloanExecutor is FlashLoanReceiverBase {
         uint256 value;
         Enum.Operation callType;
     }
-
-    TxnLeg[] legs;
 
     event CallSuccessful(address indexed to, bytes input, string msg);
     event CallFailed(address indexed to, bytes input, string msg);

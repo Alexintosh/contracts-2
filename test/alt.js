@@ -1,8 +1,8 @@
-const AltFlashloanExecutor = artifacts.require("AltFlashloanExecutor");
+const FlashloanExecutor = artifacts.require("FlashloanExecutor");
 
 const constants = require("./kovan");
-const ethers = require("ethers");
 const UNISWAP_ABI = require("../artifacts/IUniswapV2Router01.json").abi;
+const UNISWAP_FACTORY_ABI = require("../artifacts/IUniswapV2Factory.json").abi;
 
 const raw_tx = {
   amountIn: ethers.utils.parseUnits("10", "ether"),
@@ -32,17 +32,20 @@ const legs = tx.map((item) => {
 
 const amount = ethers.utils.parseEther("0.5");
 
-contract("AltFlashloanExecutor", accounts => {
+contract("FlashloanExecutor", accounts => {
   it("Should deploy an executor contract", async function() {
-    const ef = await AltFlashloanExecutor.new(constants.AAVE_PROVIDER);
+    const ef = await FlashloanExecutor.new(constants.AAVE_PROVIDER);
   });
 
   it("Should have valid test data", async function () {
-    ;
+    const factory = new ethers.Contract(constants.UNISWAP_FACTORY, UNISWAP_FACTORY_ABI, ethers.getDefaultProvider());
+
+    const pair = await factory.getPair(raw_tx.path[0], raw_tx.path[1]);
+    assert.notEqual(pair, "0x0000000000000000000000000000000000000000", "Pair address should not be zero");
   });
 
   it("Should run a test transaction", async function() {
-    const ef = await AltFlashloanExecutor.new(constants.AAVE_PROVIDER);
+    const ef = await FlashloanExecutor.new(constants.AAVE_PROVIDER);
 
     await ef.run(constants.AAVE_ETHEREUM, amount, legs);
   });
