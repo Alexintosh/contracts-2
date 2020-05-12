@@ -3,6 +3,7 @@ const FlashloanExecutor = artifacts.require("FlashloanExecutor");
 const constants = require("./kovan");
 const UNISWAP_ABI = require("../artifacts/IUniswapV2Router01.json").abi;
 const UNISWAP_FACTORY_ABI = require("../artifacts/IUniswapV2Factory.json").abi;
+const UNISWAP_PAIR_ABI = require('../artifacts/IUniswapV2Pair.json').abi;
 
 const raw_tx = {
   amountIn: ethers.utils.parseUnits("10", "ether"),
@@ -37,10 +38,22 @@ contract("FlashloanExecutor", accounts => {
     const ef = await FlashloanExecutor.new(constants.AAVE_PROVIDER);
   });
 
-  it("Should have valid test data", async function () {
+  it("Should have valid Uniswap pair", async function () {
+    const factory = new ethers.Contract(constants.UNISWAP_FACTORY, UNISWAP_FACTORY_ABI, ethers.getDefaultProvider());
+
+    // TODO: Pair needs to be sorted
+    const pair = await factory.getPair(raw_tx.path[0], raw_tx.path[1]);
+    assert.notEqual(pair, "0x0000000000000000000000000000000000000000", "Pair address should not be zero");
+  });
+
+  it("Uniswap reserves must have enough balance", async function () {
     const factory = new ethers.Contract(constants.UNISWAP_FACTORY, UNISWAP_FACTORY_ABI, ethers.getDefaultProvider());
 
     const pair = await factory.getPair(raw_tx.path[0], raw_tx.path[1]);
+    assert.notEqual(pair, "0x0000000000000000000000000000000000000000", "Pair address should not be zero");
+
+    const pairContract = new ethers.Contract(pair, UNISWAP_PAIR_ABI, ethers.getDefaultProvider());
+    const [ reserveA, reserves ] = await factory.getPair(raw_tx.path[0], raw_tx.path[1]);
     assert.notEqual(pair, "0x0000000000000000000000000000000000000000", "Pair address should not be zero");
   });
 
