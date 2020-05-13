@@ -17,52 +17,55 @@ const raw_tx = {
 };
 const uniswap = new ethers.utils.Interface(UNISWAP_ABI);
 const txData = uniswap.functions.swapExactTokensForTokens.encode([
-    raw_tx.amountIn,
-    raw_tx.amountOutMin,
-    raw_tx.path,
-    raw_tx.to,
-    raw_tx.deadline]);
+  raw_tx.amountIn,
+  raw_tx.amountOutMin,
+  raw_tx.path,
+  raw_tx.to,
+  raw_tx.deadline
+]);
 const txTo = constants.UNISWAP_ADDRESS;
 
-const tx = [{"to": txTo,"txData": txData}];
+const tx = [{
+  "to": txTo,
+  "txData": txData
+}];
 const legs = tx.map((item) => {
-  return { to: item.to,
+  return {
+    to: item.to,
     input: item.txData,
     value: 0,
-    callType: 0, }});
+    callType: 0,
+  }
+});
 
 const amount = ethers.utils.parseEther("0.5");
 
 contract("FlashloanExecutor", accounts => {
-  it("Should deploy an executor contract", async function() {
+  it("Should deploy an executor contract", async function () {
     const ef = await FlashloanExecutor.new(constants.AAVE_PROVIDER);
   });
 
   it("Should have valid Uniswap pair", async function () {
-    const factory = new ethers.Contract(constants.UNISWAP_FACTORY, UNISWAP_FACTORY_ABI, ethers.getDefaultProvider());
-
+    const factory = new ethers.Contract(constants.UNISWAP_FACTORY, UNISWAP_FACTORY_ABI, ethers.getDefaultProvider('kovan'));
     const pair = await factory.getPair(raw_tx.path[0], raw_tx.path[1]);
     assert.notEqual(pair, "0x0000000000000000000000000000000000000000", "Pair address should not be zero");
   });
 
   it("Uniswap reserves must have enough balance", async function () {
-    const factory = new ethers.Contract(constants.UNISWAP_FACTORY, UNISWAP_FACTORY_ABI, ethers.getDefaultProvider());
+    const factory = new ethers.Contract(constants.UNISWAP_FACTORY, UNISWAP_FACTORY_ABI, ethers.getDefaultProvider('kovan'));
 
     const pair = await factory.getPair(raw_tx.path[0], raw_tx.path[1]);
     assert.notEqual(pair, "0x0000000000000000000000000000000000000000", "Pair address should not be zero");
 
-    const pairContract = new ethers.Contract(pair, UNISWAP_PAIR_ABI, ethers.getDefaultProvider());
-    const [ reserveA, reserveB ] = await factory.getPair(raw_tx.path[0], raw_tx.path[1]);
+    const pairContract = new ethers.Contract(pair, UNISWAP_PAIR_ABI, ethers.getDefaultProvider('kovan'));
+    const [reserveA, reserveB] = await factory.getPair(raw_tx.path[0], raw_tx.path[1]);
     assert(reserveA >= amount, "Reserve A should have more than trade amount");
     assert(reserveB >= amount, "Reserve B should have more than trade amount");
   });
 
-  it("Should run a test transaction", async function() {
+  it("Should run a test transaction", async function () {
     const ef = await FlashloanExecutor.new(constants.AAVE_PROVIDER);
 
     await ef.run(constants.AAVE_ETHEREUM, amount, legs);
   });
 });
-
-
-
