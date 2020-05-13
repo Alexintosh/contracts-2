@@ -61,7 +61,7 @@ contract("FlashloanExecutor", accounts => {
 
     const pairContract = new ethers.Contract(pair, UNISWAP_PAIR_ABI, ethers.getDefaultProvider('kovan'));
     const [ reserveA, reserveB ] = await pairContract.getReserves();
-    console.log("Reserves: " + reserveA + " " + reserveB);
+    //console.log("Reserves: " + reserveA + " " + reserveB);
     assert(reserveA >= amount, "Reserve A should have more than trade amount");
     assert(reserveB >= amount, "Reserve B should have more than trade amount");
   });
