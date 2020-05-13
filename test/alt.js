@@ -9,8 +9,8 @@ const raw_tx = {
   amountIn: ethers.utils.parseUnits("10", "ether"),
   amountOutMin: ethers.utils.parseUnits("9.9", "ether"),
   path: [
-    "0xff795577d9ac8bd7d90ee22b6c1703490b6512fd",
-    "0xaaf64bfcc32d0f15873a02163e7e500671a4ffcd",
+    "0xff795577d9ac8bd7d90ee22b6c1703490b6512fd", // Aave DAI
+    "0xe22da380ee6B445bb8273C81944ADEB6E8450422" // Aave USDC
   ],
   to: "0x038AD9777dC231274553ff927CcB0Fd21Cd42fb9",
   deadline: 1590969600,
@@ -41,7 +41,6 @@ contract("FlashloanExecutor", accounts => {
   it("Should have valid Uniswap pair", async function () {
     const factory = new ethers.Contract(constants.UNISWAP_FACTORY, UNISWAP_FACTORY_ABI, ethers.getDefaultProvider());
 
-    // TODO: Pair needs to be sorted
     const pair = await factory.getPair(raw_tx.path[0], raw_tx.path[1]);
     assert.notEqual(pair, "0x0000000000000000000000000000000000000000", "Pair address should not be zero");
   });
@@ -53,8 +52,9 @@ contract("FlashloanExecutor", accounts => {
     assert.notEqual(pair, "0x0000000000000000000000000000000000000000", "Pair address should not be zero");
 
     const pairContract = new ethers.Contract(pair, UNISWAP_PAIR_ABI, ethers.getDefaultProvider());
-    const [ reserveA, reserves ] = await factory.getPair(raw_tx.path[0], raw_tx.path[1]);
-    assert.notEqual(pair, "0x0000000000000000000000000000000000000000", "Pair address should not be zero");
+    const [ reserveA, reserveB ] = await factory.getPair(raw_tx.path[0], raw_tx.path[1]);
+    assert(reserveA >= amount, "Reserve A should have more than trade amount");
+    assert(reserveB >= amount, "Reserve B should have more than trade amount");
   });
 
   it("Should run a test transaction", async function() {

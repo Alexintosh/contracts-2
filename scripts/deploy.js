@@ -2,7 +2,7 @@
 // when running the script with `buidler run <script>`: you'll find the Buidler
 // Runtime Environment's members available as global variable in that case.
 const env = require("@nomiclabs/buidler");
-const ethers = require("ethers");
+const constants = require("../test/kovan");
 
 async function main() {
   // You can run Buidler tasks from a script.
@@ -10,8 +10,8 @@ async function main() {
   await env.run("compile");
 
   // We require the artifacts once our contracts are compiled
-  const ExecutorFactory = env.artifacts.require("ExecutorFactory");
-  const efInstance = await ExecutorFactory.new();
+  const FlashloanExecutor = env.artifacts.require("FlashloanExecutor");
+  const efInstance = await FlashloanExecutor.new(constants.AAVE_PROVIDER);
 
   console.log("ExecutorFactory address:", efInstance.address);
 }
