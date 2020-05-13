@@ -38,7 +38,7 @@ const legs = tx.map((item) => {
   }
 });
 
-const amount = ethers.utils.parseEther("0.5");
+const amount = ethers.utils.parseEther("0.001");
 
 contract("FlashloanExecutor", accounts => {
   it("Should deploy an executor contract", async function () {
@@ -47,18 +47,21 @@ contract("FlashloanExecutor", accounts => {
 
   it("Should have valid Uniswap pair", async function () {
     const factory = new ethers.Contract(constants.UNISWAP_FACTORY, UNISWAP_FACTORY_ABI, ethers.getDefaultProvider('kovan'));
+
     const pair = await factory.getPair(raw_tx.path[0], raw_tx.path[1]);
+    //console.log("Factory(" + constants.UNISWAP_FACTORY + "): " + pair + " <- (" + raw_tx.path[0] + ";" + raw_tx.path[1] + ")");
     assert.notEqual(pair, "0x0000000000000000000000000000000000000000", "Pair address should not be zero");
   });
 
   it("Uniswap reserves must have enough balance", async function () {
     const factory = new ethers.Contract(constants.UNISWAP_FACTORY, UNISWAP_FACTORY_ABI, ethers.getDefaultProvider('kovan'));
 
-    const pair = await factory.getPair(raw_tx.path[0], raw_tx.path[1]);
+    const pair = await factory.getPair(raw_tx.path[1], raw_tx.path[0]);
     assert.notEqual(pair, "0x0000000000000000000000000000000000000000", "Pair address should not be zero");
 
     const pairContract = new ethers.Contract(pair, UNISWAP_PAIR_ABI, ethers.getDefaultProvider('kovan'));
-    const [reserveA, reserveB] = await factory.getPair(raw_tx.path[0], raw_tx.path[1]);
+    const [ reserveA, reserveB ] = await pairContract.getReserves();
+    console.log("Reserves: " + reserveA + " " + reserveB);
     assert(reserveA >= amount, "Reserve A should have more than trade amount");
     assert(reserveB >= amount, "Reserve B should have more than trade amount");
   });
