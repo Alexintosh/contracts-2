@@ -49,7 +49,6 @@ contract("FlashloanExecutor", accounts => {
     const factory = new ethers.Contract(constants.UNISWAP_FACTORY, UNISWAP_FACTORY_ABI, ethers.getDefaultProvider('kovan'));
 
     const pair = await factory.getPair(raw_tx.path[0], raw_tx.path[1]);
-    //console.log("Factory(" + constants.UNISWAP_FACTORY + "): " + pair + " <- (" + raw_tx.path[0] + ";" + raw_tx.path[1] + ")");
     assert.notEqual(pair, "0x0000000000000000000000000000000000000000", "Pair address should not be zero");
   });
 
@@ -61,9 +60,14 @@ contract("FlashloanExecutor", accounts => {
 
     const pairContract = new ethers.Contract(pair, UNISWAP_PAIR_ABI, ethers.getDefaultProvider('kovan'));
     const [ reserveA, reserveB ] = await pairContract.getReserves();
-    //console.log("Reserves: " + reserveA + " " + reserveB);
     assert(reserveA >= amount, "Reserve A should have more than trade amount");
     assert(reserveB >= amount, "Reserve B should have more than trade amount");
+  });
+
+  it("Should run an empty transaction", async function () {
+    const ef = await FlashloanExecutor.new(constants.AAVE_PROVIDER);
+
+    await ef.run(constants.AAVE_ETHEREUM, amount, []);
   });
 
   it("Should run a test transaction", async function () {
