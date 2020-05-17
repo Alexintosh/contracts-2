@@ -1,5 +1,5 @@
 const FlashloanExecutor = artifacts.require("FlashloanExecutor");
-
+const ethers = require('ethers');
 const constants = require("./kovan");
 const UNISWAP_ABI = require("../artifacts/IUniswapV2Router01.json").abi;
 const UNISWAP_FACTORY_ABI = require("../artifacts/IUniswapV2Factory.json").abi;
@@ -59,7 +59,7 @@ contract("FlashloanExecutor", accounts => {
     assert.notEqual(pair, "0x0000000000000000000000000000000000000000", "Pair address should not be zero");
 
     const pairContract = new ethers.Contract(pair, UNISWAP_PAIR_ABI, ethers.getDefaultProvider('kovan'));
-    const [ reserveA, reserveB ] = await pairContract.getReserves();
+    const [reserveA, reserveB] = await pairContract.getReserves();
     assert(reserveA >= amount, "Reserve A should have more than trade amount");
     assert(reserveB >= amount, "Reserve B should have more than trade amount");
   });
