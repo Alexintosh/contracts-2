@@ -54,12 +54,12 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
     }
 
     /**
-    * @dev testFlashLoan Allows specified _receiver to borrow(**Without Collateral**) from the _reserve pool(lender), and calls executeOperation() on the _receiver contract.
+    * @dev run Allows specified _receiver to borrow(**Without Collateral**) from the _reserve pool(lender), and calls executeOperation() on the _receiver contract.
     * @param asset Address of the asset to be borrowed ex: Dai, Usdc etc.
     * @param amt Total amount to be borrowed for flash loan.
     * @notice onlyOwner This function can only be called by the contract owner.
     */
-    function run(address asset, uint256 amt, TxnLeg[] memory legs) public onlyOwner {
+    function run(address asset, uint256 amt, TxnLeg[] memory legs) payable public {
         bytes memory data = abi.encode(legs);
         ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
         lendingPool.flashLoan(address(this), asset, amt, data);
