@@ -8,6 +8,8 @@ import "./Enum.sol";
 contract FlashloanExecutor is FlashLoanReceiverBase {
     using SafeMath for uint256;
 
+    uint256 private constant FLASHLOAN_FEE_TOTAL = 35;
+
     struct TxnLeg {
         address to;
         bytes input;
@@ -15,8 +17,7 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
         Enum.Operation callType;
     }
 
-    event CallSuccessful(address indexed to, bytes input, string msg);
-    event CallFailed(address indexed to, bytes input, string msg);
+    event OperationExecuted(address indexed to, uint256 amount);
 
     constructor(address _provider) FlashLoanReceiverBase(_provider) public {
     }
@@ -53,6 +54,13 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
         }
     }
 
+    function estimateFee(uint256 amount) pure public returns (uint256 fee) {
+        //calculate amount fee
+        uint256 amountFee = amount.mul(FLASHLOAN_FEE_TOTAL).div(10000);
+
+        return amountFee;
+    }
+
     /**
     * @dev run Allows specified _receiver to borrow(**Without Collateral**) from the _reserve pool(lender), and calls executeOperation() on the _receiver contract.
     * @param asset Address of the asset to be borrowed ex: Dai, Usdc etc.
@@ -75,19 +83,20 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
     */
     function executeOperation(address _reserve, uint256 _amount, uint256 _fee, bytes calldata _params) override external {
         //Check if the flash loan was successful
-        require(_amount <= getBalanceInternal(address(this), _reserve), "Invalid balance, was the flashLoan successful?");
+        uint256 balance0 = getBalanceInternal(address(this), _reserve);
+        require(_amount <= balance0, "Invalid balance, was the flashLoan successful?");
 
         TxnLeg[] memory legs = abi.decode(_params, (TxnLeg[]));
         for(uint i = 0; i < legs.length; i++) {
             TxnLeg memory leg = legs[i];
-            bool success = execute(leg.to, leg.value, leg.input, leg.callType,gasleft());
 
-            if(success) {
-                emit CallSuccessful(leg.to, leg.input, "Call Successful");
-            } else {
-                emit CallFailed(leg.to, leg.input, "Call Failed");
-            }
+            execute(leg.to, leg.value, leg.input, leg.callType, gasleft());
         }
+
+        //calculate profit and emit event
+        uint256 balance1 = getBalanceInternal(address(this), _reserve);
+        uint256 pl = balance1.sub(balance0);
+        emit OperationExecuted(tx.origin, pl);
 
         //return the loan back to the pool
         uint totalDebt = _amount.add(_fee);
