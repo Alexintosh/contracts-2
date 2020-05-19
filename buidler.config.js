@@ -30,7 +30,11 @@ module.exports = {
       },
     },
     localhost: {
-      url: 'http://localhost:8545'
+      url: 'http://localhost:8545',
+    },
+    proxy: {
+      url: 'http://localhost:9545',
+      gas: 6700000,
     }
   },
 };
