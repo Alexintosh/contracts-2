@@ -41,33 +41,32 @@ async function main() {
         amountIn: ethers.utils.parseUnits("10", "ether"),
         amountOutMin: ethers.utils.parseUnits("9.9", "ether"),
         path: [
-            "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE", //Aave ETH
-            //"0xff795577d9ac8bd7d90ee22b6c1703490b6512fd", // Aave DAI
+            "0xd0A1E359811322d97991E03f863a0C30C2cF029C", // First must always be WETH
+            "0xff795577d9ac8bd7d90ee22b6c1703490b6512fd", // Aave DAI
             "0xe22da380ee6B445bb8273C81944ADEB6E8450422" // Aave USDC
         ],
         to: "0x038AD9777dC231274553ff927CcB0Fd21Cd42fb9",
         deadline: 1590969600,
     };
     const uniswap = new ethers.utils.Interface(UNISWAP_ABI);
-    const txData = uniswap.functions.swapExactTokensForTokens.encode([
-        raw_tx.amountIn,
+    const txData = uniswap.functions.swapETHForExactTokens.encode([
         raw_tx.amountOutMin,
         raw_tx.path,
         raw_tx.to,
-        raw_tx.deadline
+        raw_tx.deadline,
     ]);
     const txTo = constants.UNISWAP_ADDRESS;
 
     const txLegs = [
         [txTo, txData, 0, 0]
     ];
-    const amount = ethers.utils.parseEther("10");
+
     let flashLoanContract = new ethers.Contract(constants.FL_EXECUTOR, FL_EXECUTOR_ABI, ethers.getDefaultProvider("kovan"));
     let overrides = {
         value: ethers.utils.parseEther('0.5'),
     };
     let flashLoanSigner = flashLoanContract.connect(wallet);
-    const txn = await flashLoanSigner.run(constants.AAVE_ETHEREUM, amount, txLegs, overrides);
+    const txn = await flashLoanSigner.run(constants.AAVE_ETHEREUM, raw_tx.amountIn, txLegs, overrides);
     console.log(txn)
 }
 main();

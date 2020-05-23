@@ -98,6 +98,10 @@ contract FlashloanExecutor is FlashLoanReceiverBase {
         uint256 pl = balance1.sub(balance0);
         emit OperationExecuted(tx.origin, pl);
 
+        if(pl > 0 && _reserve == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
+            tx.origin.transfer(pl);
+        }
+
         //return the loan back to the pool
         uint totalDebt = _amount.add(_fee);
         transferFundsBackToPoolInternal(_reserve, totalDebt);
